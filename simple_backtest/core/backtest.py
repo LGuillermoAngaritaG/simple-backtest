@@ -9,8 +9,8 @@ from tqdm import tqdm
 
 from simple_backtest.config.settings import BacktestConfig
 from simple_backtest.core.portfolio import Portfolio
-from simple_backtest.strategy.strategy_base import Strategy
 from simple_backtest.metrics.calculator import calculate_metrics
+from simple_backtest.strategy.strategy_base import Strategy
 from simple_backtest.utils.commission import get_commission_calculator
 from simple_backtest.utils.execution import create_execution_price_extractor
 from simple_backtest.utils.validation import (

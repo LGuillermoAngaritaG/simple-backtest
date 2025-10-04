@@ -7,7 +7,6 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-
 # Color palette for consistent styling
 COLORS = [
     "#1f77b4",  # Blue
