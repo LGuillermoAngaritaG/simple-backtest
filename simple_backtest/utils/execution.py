@@ -1,4 +1,4 @@
-"""Execution price extraction strategies from OHLCV data."""
+"""Execution price extraction from OHLCV data."""
 
 from typing import Callable, Literal
 
@@ -6,51 +6,17 @@ import pandas as pd
 
 
 def get_open_price(row: pd.Series) -> float:
-    """Extract open price from OHLCV row.
-
-    Args:
-        row: Pandas Series with OHLCV data
-
-    Returns:
-        Open price
-
-    Raises:
-        KeyError: If 'Open' column missing
-    """
+    """Return open price."""
     return float(row["Open"])
 
 
 def get_close_price(row: pd.Series) -> float:
-    """Extract close price from OHLCV row.
-
-    Args:
-        row: Pandas Series with OHLCV data
-
-    Returns:
-        Close price
-
-    Raises:
-        KeyError: If 'Close' column missing
-    """
+    """Return close price."""
     return float(row["Close"])
 
 
 def get_vwap(row: pd.Series) -> float:
-    """Calculate Volume Weighted Average Price (VWAP).
-
-    VWAP = (Typical Price * Volume) / Volume
-    Typical Price = (High + Low + Close) / 3
-
-    Args:
-        row: Pandas Series with OHLCV data
-
-    Returns:
-        VWAP price
-
-    Raises:
-        KeyError: If required columns missing
-        ValueError: If volume is zero
-    """
+    """Calculate Volume Weighted Average Price."""
     high = float(row["High"])
     low = float(row["Low"])
     close = float(row["Close"])
@@ -69,26 +35,12 @@ def get_execution_price(
     method: Literal["open", "close", "vwap", "custom"] = "open",
     custom_func: Callable[[pd.Series], float] | None = None,
 ) -> float:
-    """Extract execution price from OHLCV data using specified method.
+    """Extract execution price using specified method.
 
-    Args:
-        row: Pandas Series with OHLCV data (must have Open, High, Low, Close, Volume)
-        method: Execution price method ('open', 'close', 'vwap', 'custom')
-        custom_func: Custom function for 'custom' method (takes row, returns price)
-
-    Returns:
-        Execution price
-
-    Raises:
-        ValueError: If method is invalid or custom_func not provided for 'custom' method
-        KeyError: If required columns missing from row
-
-    Example:
-        >>> row = pd.Series({'Open': 100, 'High': 105, 'Low': 98, 'Close': 102, 'Volume': 1000})
-        >>> get_execution_price(row, method='open')
-        100.0
-        >>> get_execution_price(row, method='vwap')
-        101.666...
+    :param row: OHLCV Series
+    :param method: Price method ('open', 'close', 'vwap', 'custom')
+    :param custom_func: Custom function for 'custom' method
+    :return: Execution price
     """
     if method == "open":
         return get_open_price(row)
@@ -115,20 +67,11 @@ def create_execution_price_extractor(
     method: Literal["open", "close", "vwap", "custom"] = "open",
     custom_func: Callable[[pd.Series], float] | None = None,
 ) -> Callable[[pd.Series], float]:
-    """Create execution price extractor function using Factory Pattern.
+    """Create price extractor function.
 
-    Args:
-        method: Execution price method
-        custom_func: Optional custom function for 'custom' method
-
-    Returns:
-        Callable that takes row and returns price
-
-    Example:
-        >>> extractor = create_execution_price_extractor(method='open')
-        >>> row = pd.Series({'Open': 100, 'Close': 102})
-        >>> extractor(row)
-        100.0
+    :param method: Price method
+    :param custom_func: Custom function for 'custom' method
+    :return: Extractor function (row) -> price
     """
     if method == "open":
         return get_open_price
@@ -148,14 +91,9 @@ def create_execution_price_extractor(
 
 
 def validate_ohlcv_row(row: pd.Series) -> None:
-    """Validate that row contains required OHLCV columns.
+    """Validate OHLCV row format.
 
-    Args:
-        row: Pandas Series to validate
-
-    Raises:
-        KeyError: If required columns missing
-        ValueError: If price values are invalid (negative, High < Low, etc.)
+    :param row: Series to validate
     """
     required_columns = ["Open", "High", "Low", "Close", "Volume"]
     missing_columns = [col for col in required_columns if col not in row.index]

@@ -1,4 +1,4 @@
-"""Portfolio management for tracking positions, cash, and trade history."""
+"""Portfolio management for positions, cash, and trade history."""
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -6,26 +6,12 @@ from uuid import uuid4
 
 
 class Portfolio:
-    """Tracks portfolio state including cash, positions, and trade history.
-
-    Positions are tracked with unique order IDs to support FIFO selling and
-    accurate P&L calculation per trade.
-
-    Attributes:
-        initial_capital: Starting capital for the portfolio
-        cash: Current available cash
-        positions: Dict mapping order_id to position details
-        trade_history: List of all executed trades
-    """
+    """Tracks cash, positions, and trade history with FIFO position management."""
 
     def __init__(self, initial_capital: float):
-        """Initialize portfolio with starting capital.
+        """Initialize portfolio.
 
-        Args:
-            initial_capital: Starting cash amount (must be positive)
-
-        Raises:
-            ValueError: If initial_capital is not positive
+        :param initial_capital: Starting cash (must be positive)
         """
         if initial_capital <= 0:
             raise ValueError(f"initial_capital must be positive, got {initial_capital}")
@@ -36,35 +22,25 @@ class Portfolio:
         self.trade_history: List[Dict[str, Any]] = []
 
     def get_total_shares(self) -> float:
-        """Calculate total number of shares held across all positions.
-
-        Returns:
-            Total shares held
-        """
+        """Return total shares held across all positions."""
         return sum(pos["shares"] for pos in self.positions.values())
 
     def get_portfolio_value(self, current_price: float) -> float:
-        """Calculate total portfolio value (cash + position values).
+        """Calculate total portfolio value.
 
-        Args:
-            current_price: Current market price per share
-
-        Returns:
-            Total portfolio value
+        :param current_price: Current market price per share
+        :return: Cash + position values
         """
         position_value = self.get_total_shares() * current_price
         return self.cash + position_value
 
     def can_afford(self, shares: float, price: float, commission: float) -> bool:
-        """Check if portfolio has sufficient cash for a purchase.
+        """Check if sufficient cash for purchase.
 
-        Args:
-            shares: Number of shares to buy
-            price: Price per share
-            commission: Commission cost
-
-        Returns:
-            True if portfolio can afford the trade
+        :param shares: Shares to buy
+        :param price: Price per share
+        :param commission: Commission cost
+        :return: True if affordable
         """
         total_cost = (shares * price) + commission
         return self.cash >= total_cost
@@ -77,20 +53,14 @@ class Portfolio:
         timestamp: datetime,
         order_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Execute a buy order and update portfolio state.
+        """Execute buy order and update portfolio.
 
-        Args:
-            shares: Number of shares to buy (must be positive)
-            price: Price per share (must be positive)
-            commission: Commission cost (must be non-negative)
-            timestamp: Execution timestamp
-            order_id: Optional order ID (generated if not provided)
-
-        Returns:
-            Trade information dictionary
-
-        Raises:
-            ValueError: If parameters are invalid or insufficient cash
+        :param shares: Shares to buy (positive)
+        :param price: Price per share (positive)
+        :param commission: Commission cost (non-negative)
+        :param timestamp: Execution time
+        :param order_id: Order ID (auto-generated if None)
+        :return: Trade info dict
         """
         if shares <= 0:
             raise ValueError(f"shares must be positive, got {shares}")
@@ -102,9 +72,7 @@ class Portfolio:
         total_cost = (shares * price) + commission
 
         if not self.can_afford(shares, price, commission):
-            raise ValueError(
-                f"Insufficient cash. Need {total_cost:.2f}, have {self.cash:.2f}"
-            )
+            raise ValueError(f"Insufficient cash. Need {total_cost:.2f}, have {self.cash:.2f}")
 
         # Generate order ID if not provided
         if order_id is None:
@@ -145,20 +113,14 @@ class Portfolio:
         timestamp: datetime,
         order_ids: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Execute a sell order using FIFO or specified order IDs.
+        """Execute sell order using FIFO or specified order IDs.
 
-        Args:
-            shares: Number of shares to sell (must be positive)
-            price: Price per share (must be positive)
-            commission: Commission cost (must be non-negative)
-            timestamp: Execution timestamp
-            order_ids: Optional list of specific order IDs to sell from (FIFO if None)
-
-        Returns:
-            Trade information dictionary including P&L
-
-        Raises:
-            ValueError: If parameters invalid, insufficient shares, or invalid order_ids
+        :param shares: Shares to sell (positive)
+        :param price: Price per share (positive)
+        :param commission: Commission cost (non-negative)
+        :param timestamp: Execution time
+        :param order_ids: Specific orders to sell from (FIFO if None)
+        :return: Trade info dict with P&L
         """
         if shares <= 0:
             raise ValueError(f"shares must be positive, got {shares}")
@@ -243,25 +205,17 @@ class Portfolio:
         return trade_info
 
     def get_trade_history(self) -> List[Dict[str, Any]]:
-        """Get complete trade history.
-
-        Returns:
-            List of trade information dictionaries
-        """
+        """Return copy of trade history."""
         return self.trade_history.copy()
 
     def reset(self) -> None:
-        """Reset portfolio to initial state."""
+        """Reset to initial state."""
         self.cash = self.initial_capital
         self.positions.clear()
         self.trade_history.clear()
 
     def get_state_snapshot(self) -> Dict[str, Any]:
-        """Get current portfolio state snapshot.
-
-        Returns:
-            Dictionary with current cash, positions, and total shares
-        """
+        """Return current state snapshot."""
         return {
             "cash": self.cash,
             "positions": dict(self.positions),
@@ -269,7 +223,7 @@ class Portfolio:
         }
 
     def __repr__(self) -> str:
-        """String representation of portfolio."""
+        """String representation."""
         return (
             f"Portfolio(cash={self.cash:.2f}, "
             f"positions={len(self.positions)}, "

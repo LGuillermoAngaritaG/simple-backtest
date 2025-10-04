@@ -153,6 +153,7 @@ def cached(cache: DataCache | None = None) -> Callable:
             return data.sum().sum()
         ```
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -180,6 +181,7 @@ def cached(cache: DataCache | None = None) -> Callable:
             return result
 
         return wrapper
+
     return decorator
 
 
@@ -203,9 +205,7 @@ def cache_dataframe_slice(
         return data.iloc[start_idx:end_idx]
 
     # Generate cache key based on data hash and indices
-    data_hash = hashlib.md5(
-        pd.util.hash_pandas_object(data.index).values
-    ).hexdigest()[:8]
+    data_hash = hashlib.md5(pd.util.hash_pandas_object(data.index).values).hexdigest()[:8]
     cache_key = f"slice_{data_hash}_{start_idx}_{end_idx}"
 
     # Try cache

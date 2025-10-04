@@ -2,7 +2,7 @@
 
 import pytest
 
-from simple_backtest.core.strategy import Strategy
+from simple_backtest.strategy.strategy_base import Strategy
 
 
 class TestStrategy(Strategy):

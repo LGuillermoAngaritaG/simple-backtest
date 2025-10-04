@@ -1,4 +1,4 @@
-"""Comprehensive input validation with custom exception hierarchy."""
+"""Input validation with custom exceptions."""
 
 import warnings
 from datetime import datetime
@@ -6,43 +6,38 @@ from typing import List
 
 import pandas as pd
 
-from simple_backtest.core.strategy import Strategy
+from simple_backtest.strategy.strategy_base import Strategy
 
 
-# Custom Exception Hierarchy
 class BacktestError(Exception):
-    """Base exception for backtesting framework."""
+    """Base exception for backtesting."""
 
     pass
 
 
 class DataValidationError(BacktestError):
-    """Exception raised for data validation failures."""
+    """Data validation error."""
 
     pass
 
 
 class DateRangeError(BacktestError):
-    """Exception raised for date range validation failures."""
+    """Date range validation error."""
 
     pass
 
 
 class StrategyError(BacktestError):
-    """Exception raised for strategy validation failures."""
+    """Strategy validation error."""
 
     pass
 
 
 def validate_dataframe(data: pd.DataFrame, strict: bool = True) -> None:
-    """Validate DataFrame has required structure for backtesting.
+    """Validate DataFrame structure for backtesting.
 
-    Args:
-        data: DataFrame to validate
-        strict: If True, raise errors. If False, only warn for non-critical issues.
-
-    Raises:
-        DataValidationError: If data structure is invalid
+    :param data: DataFrame to validate
+    :param strict: If True, raise errors; if False, warn only
     """
     if data.empty:
         raise DataValidationError("DataFrame is empty")
@@ -53,16 +48,13 @@ def validate_dataframe(data: pd.DataFrame, strict: bool = True) -> None:
 
     if missing_columns:
         raise DataValidationError(
-            f"DataFrame missing required columns: {missing_columns}. "
-            f"Required: {required_columns}"
+            f"DataFrame missing required columns: {missing_columns}. Required: {required_columns}"
         )
 
     # Validate data types
     for col in ["Open", "High", "Low", "Close", "Volume"]:
         if not pd.api.types.is_numeric_dtype(data[col]):
-            raise DataValidationError(
-                f"Column '{col}' must be numeric, got {data[col].dtype}"
-            )
+            raise DataValidationError(f"Column '{col}' must be numeric, got {data[col].dtype}")
 
     # Check for missing values
     missing_counts = data[required_columns].isnull().sum()
@@ -101,7 +93,9 @@ def validate_dataframe(data: pd.DataFrame, strict: bool = True) -> None:
     if isinstance(data.index, pd.DatetimeIndex):
         if not data.index.is_monotonic_increasing:
             if strict:
-                raise DataValidationError("DataFrame index (dates) must be sorted in ascending order")
+                raise DataValidationError(
+                    "DataFrame index (dates) must be sorted in ascending order"
+                )
             else:
                 warnings.warn(
                     "DataFrame index (dates) is not sorted in ascending order. "
@@ -172,16 +166,12 @@ def validate_date_range(
     trading_end_date: datetime | None,
     lookback_period: int,
 ) -> None:
-    """Validate trading date range is compatible with data.
+    """Validate trading date range compatibility with data.
 
-    Args:
-        data: DataFrame with DatetimeIndex
-        trading_start_date: Desired trading start date (None = use data start + lookback)
-        trading_end_date: Desired trading end date (None = use data end)
-        lookback_period: Number of rows needed for strategy context
-
-    Raises:
-        DateRangeError: If date range is invalid
+    :param data: DataFrame with DatetimeIndex
+    :param trading_start_date: Trading start (None = auto)
+    :param trading_end_date: Trading end (None = auto)
+    :param lookback_period: Rows needed before trading
     """
     if not isinstance(data.index, pd.DatetimeIndex):
         raise DateRangeError("DataFrame must have DatetimeIndex for date range validation")
@@ -196,8 +186,7 @@ def validate_date_range(
     # Validate lookback period
     if lookback_period >= total_rows:
         raise DateRangeError(
-            f"lookback_period ({lookback_period}) must be less than "
-            f"total data rows ({total_rows})"
+            f"lookback_period ({lookback_period}) must be less than total data rows ({total_rows})"
         )
 
     # Determine effective trading dates
@@ -229,9 +218,7 @@ def validate_date_range(
 
     # Validate end date
     if effective_end > data_end:
-        raise DateRangeError(
-            f"Trading end date ({effective_end}) is after data end ({data_end})"
-        )
+        raise DateRangeError(f"Trading end date ({effective_end}) is after data end ({data_end})")
 
     if effective_end < data_start:
         raise DateRangeError(
@@ -258,11 +245,7 @@ def validate_date_range(
 def validate_strategies(strategies: List[Strategy]) -> None:
     """Validate list of strategies.
 
-    Args:
-        strategies: List of Strategy instances
-
-    Raises:
-        StrategyError: If strategy validation fails
+    :param strategies: List of strategies to validate
     """
     if not strategies:
         raise StrategyError("Must provide at least one strategy")

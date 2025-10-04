@@ -1,4 +1,4 @@
-"""Main backtesting engine with parallelization support."""
+"""Backtesting engine with parallelization support."""
 
 from datetime import datetime
 from typing import Any, Callable, Dict, List
@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from simple_backtest.config.settings import BacktestConfig
 from simple_backtest.core.portfolio import Portfolio
-from simple_backtest.core.strategy import Strategy
+from simple_backtest.strategy.strategy_base import Strategy
 from simple_backtest.metrics.calculator import calculate_metrics
 from simple_backtest.utils.commission import get_commission_calculator
 from simple_backtest.utils.execution import create_execution_price_extractor
@@ -21,11 +21,7 @@ from simple_backtest.utils.validation import (
 
 
 class Backtest:
-    """Core backtesting engine with parallelization support.
-
-    Orchestrates strategy execution, portfolio management, and metrics calculation.
-    Supports parallel execution of multiple strategies.
-    """
+    """Backtesting engine with parallel strategy execution support."""
 
     def __init__(
         self,
@@ -35,14 +31,9 @@ class Backtest:
     ):
         """Initialize backtest engine.
 
-        Args:
-            data: DataFrame with OHLCV data and DatetimeIndex
-            config: Backtest configuration
-            commission_calculator: Optional custom commission calculator
-                                  (if None, uses config to create one)
-
-        Raises:
-            ValueError: If data or config is invalid
+        :param data: OHLCV DataFrame with DatetimeIndex
+        :param config: Backtest configuration
+        :param commission_calculator: Custom commission function (uses config if None)
         """
         # Validate data
         validate_dataframe(data, strict=True)
@@ -77,12 +68,10 @@ class Backtest:
             self.commission_calculator = commission_calculator
 
         # Setup execution price extractor
-        self.price_extractor = create_execution_price_extractor(
-            method=config.execution_price
-        )
+        self.price_extractor = create_execution_price_extractor(method=config.execution_price)
 
     def _setup_trading_range(self) -> None:
-        """Setup trading date range based on config and data."""
+        """Set trading date range from config and data."""
         if self.config.trading_start_date is None:
             # Start after lookback period
             start_idx = self.config.lookback_period
@@ -96,31 +85,13 @@ class Backtest:
             self.trading_end_date = self.config.trading_end_date
 
         # Get trading data slice
-        self.trading_data = self.data.loc[
-            self.trading_start_date : self.trading_end_date
-        ]
+        self.trading_data = self.data.loc[self.trading_start_date : self.trading_end_date]
 
     def run(self, strategies: List[Strategy]) -> Dict[str, Dict[str, Any]]:
         """Run backtest for all strategies.
 
-        Args:
-            strategies: List of Strategy instances to backtest
-
-        Returns:
-            Dictionary mapping strategy name to results:
-            {
-                "strategy_name": {
-                    "metrics": {...},
-                    "portfolio_values": pd.Series,
-                    "trade_history": List[Dict],
-                    "returns": pd.Series
-                },
-                ...
-                "benchmark": {...}  # Buy-and-hold benchmark
-            }
-
-        Raises:
-            ValueError: If strategies are invalid
+        :param strategies: List of strategies to backtest
+        :return: Dict mapping strategy names to results (metrics, portfolio_values, trade_history, returns)
         """
         # Validate strategies
         validate_strategies(strategies)
@@ -137,8 +108,7 @@ class Backtest:
             # Parallel execution
             n_jobs = self.config.n_jobs if self.config.n_jobs != -1 else -1
             strategy_results = Parallel(n_jobs=n_jobs)(
-                delayed(self._run_single_strategy)(strategy)
-                for strategy in strategies
+                delayed(self._run_single_strategy)(strategy) for strategy in strategies
             )
         else:
             # Sequential execution
@@ -154,13 +124,10 @@ class Backtest:
         return results
 
     def _run_single_strategy(self, strategy: Strategy) -> Dict[str, Any]:
-        """Run backtest for a single strategy.
+        """Run backtest for single strategy.
 
-        Args:
-            strategy: Strategy instance
-
-        Returns:
-            Dictionary with metrics, portfolio_values, trade_history, returns
+        :param strategy: Strategy to backtest
+        :return: Results dict with metrics, portfolio_values, trade_history, returns
         """
         # Create portfolio
         portfolio = Portfolio(self.config.initial_capital)
@@ -170,12 +137,8 @@ class Backtest:
         timestamps = []
 
         # Get trading date range
-        start_idx = self.data.index.get_indexer(
-            [self.trading_start_date], method="nearest"
-        )[0]
-        end_idx = self.data.index.get_indexer(
-            [self.trading_end_date], method="nearest"
-        )[0]
+        start_idx = self.data.index.get_indexer([self.trading_start_date], method="nearest")[0]
+        end_idx = self.data.index.get_indexer([self.trading_end_date], method="nearest")[0]
 
         # Progress bar (only for non-parallel execution)
         iterator = range(start_idx, end_idx + 1)
@@ -209,9 +172,7 @@ class Backtest:
 
             # Get strategy prediction
             try:
-                prediction = strategy.predict(
-                    lookback_data, portfolio.get_trade_history()
-                )
+                prediction = strategy.predict(lookback_data, portfolio.get_trade_history())
                 strategy.validate_prediction(prediction)
             except Exception as e:
                 # Log error and continue
@@ -236,9 +197,7 @@ class Backtest:
                         )
                         strategy.on_trade_executed(trade_info)
                     except Exception as e:
-                        print(
-                            f"Buy error for {strategy.get_name()} at {current_date}: {e}"
-                        )
+                        print(f"Buy error for {strategy.get_name()} at {current_date}: {e}")
 
             elif signal == "sell" and size > 0:
                 total_shares = portfolio.get_total_shares()
@@ -258,9 +217,7 @@ class Backtest:
                         )
                         strategy.on_trade_executed(trade_info)
                     except Exception as e:
-                        print(
-                            f"Sell error for {strategy.get_name()} at {current_date}: {e}"
-                        )
+                        print(f"Sell error for {strategy.get_name()} at {current_date}: {e}")
 
         # Create portfolio values series
         portfolio_series = pd.Series(portfolio_values, index=timestamps)
@@ -288,21 +245,13 @@ class Backtest:
         }
 
     def _run_benchmark(self) -> Dict[str, Any]:
-        """Run buy-and-hold benchmark strategy.
-
-        Returns:
-            Dictionary with benchmark results
-        """
+        """Run buy-and-hold benchmark."""
         # Create portfolio
         portfolio = Portfolio(self.config.initial_capital)
 
         # Get first trading date
-        start_idx = self.data.index.get_indexer(
-            [self.trading_start_date], method="nearest"
-        )[0]
-        end_idx = self.data.index.get_indexer(
-            [self.trading_end_date], method="nearest"
-        )[0]
+        start_idx = self.data.index.get_indexer([self.trading_start_date], method="nearest")[0]
+        end_idx = self.data.index.get_indexer([self.trading_end_date], method="nearest")[0]
 
         first_date = self.data.index[start_idx]
         first_row = self.data.iloc[start_idx]
@@ -353,23 +302,16 @@ class Backtest:
             "returns": returns,
         }
 
-    def _get_benchmark_values_for_period(
-        self, timestamps: List[datetime]
-    ) -> pd.Series:
-        """Get benchmark portfolio values for specific timestamps.
+    def _get_benchmark_values_for_period(self, timestamps: List[datetime]) -> pd.Series:
+        """Get benchmark values for given timestamps.
 
-        Args:
-            timestamps: List of timestamps to get values for
-
-        Returns:
-            Series of benchmark values
+        :param timestamps: Timestamps to get values for
+        :return: Series of benchmark values
         """
         # This assumes benchmark has already been run
         # In practice, we'd cache the benchmark results
         # For now, return a simple buy-and-hold approximation
-        start_price = self.price_extractor(
-            self.data.loc[timestamps[0]]
-        )
+        start_price = self.price_extractor(self.data.loc[timestamps[0]])
         benchmark_values = []
 
         for ts in timestamps:

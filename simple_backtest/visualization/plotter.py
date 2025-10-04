@@ -302,9 +302,7 @@ def plot_trades(results: Dict[str, Dict[str, Any]]) -> Dict[str, go.Figure]:
     return figures
 
 
-def plot_rolling_metrics(
-    results: Dict[str, Dict[str, Any]], window: int = 30
-) -> go.Figure:
+def plot_rolling_metrics(results: Dict[str, Dict[str, Any]], window: int = 30) -> go.Figure:
     """Plot rolling Sharpe and Sortino ratios.
 
     Args:
@@ -326,9 +324,9 @@ def plot_rolling_metrics(
         color = COLORS[i % len(COLORS)]
 
         # Rolling Sharpe
-        rolling_sharpe = (
-            returns.rolling(window).mean() / returns.rolling(window).std()
-        ) * np.sqrt(252)
+        rolling_sharpe = (returns.rolling(window).mean() / returns.rolling(window).std()) * np.sqrt(
+            252
+        )
 
         # Rolling Volatility
         rolling_vol = returns.rolling(window).std() * np.sqrt(252) * 100
@@ -447,9 +445,7 @@ def create_comparison_table(results: Dict[str, Dict[str, Any]]) -> go.Figure:
         ]
     )
 
-    fig.update_layout(
-        title="Strategy Comparison", template="plotly_white", height=400
-    )
+    fig.update_layout(title="Strategy Comparison", template="plotly_white", height=400)
 
     return fig
 

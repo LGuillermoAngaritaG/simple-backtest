@@ -23,11 +23,10 @@ pip install simple-backtest
 ## Quick Start
 
 ```python
-from datetime import datetime
 import pandas as pd
 from simple_backtest import BacktestConfig, Backtest
-from simple_backtest.examples.simple_strategy import SimpleMovingAverageStrategy
-from simple_backtest.visualization import plot_equity_curve
+from simple_backtest.strategy.moving_average import MovingAverageStrategy
+from simple_backtest.visualization.plotter import plot_equity_curve
 
 # Load OHLCV data
 data = pd.read_csv("data.csv", index_col=0, parse_dates=True)
@@ -41,7 +40,7 @@ config = BacktestConfig(
 )
 
 # Run backtest
-strategy = SimpleMovingAverageStrategy(short_window=10, long_window=30, shares=100)
+strategy = MovingAverageStrategy(short_window=10, long_window=30, shares=100)
 backtest = Backtest(data=data, config=config)
 results = backtest.run([strategy])
 
@@ -71,21 +70,35 @@ class MyStrategy(Strategy):
         return {"signal": "hold", "size": 0, "order_ids": None}
 ```
 
+## Notebooks
+
+Check out the `notebooks/` folder for interactive examples:
+- **01_basic_usage.ipynb**: Introduction to the framework
+- **02_rsi_strategy.ipynb**: RSI momentum strategy
+- **03_bollinger_bands_strategy.ipynb**: Mean reversion with Bollinger Bands
+- **04_strategy_comparison.ipynb**: Compare multiple strategies
+
+To run the notebooks:
+```bash
+# Install with dev dependencies
+uv sync --all-extras
+
+# Start Jupyter
+jupyter notebook
+```
+
 ## Development
 
 ```bash
 # Clone repo
 git clone <repo-url>
-cd back-test
+cd simple-backtest
 
 # Install with uv
 uv sync --all-extras
 
 # Run tests
 uv run pytest
-
-# Run demo
-uv run python -m simple_backtest.examples.demo
 
 # Lint
 uv run ruff check simple_backtest
@@ -98,16 +111,12 @@ uv run ruff check simple_backtest
 - **Trades**: Win Rate, Profit Factor, Expectancy
 - **Benchmark**: Alpha, Beta, Information Ratio
 
-## Example Strategies
+## Built-in Strategies
 
-- Simple Moving Average
-- RSI
-- Bollinger Bands
-- Momentum
-- MACD
-- Volatility Breakout
+- **Buy and Hold**: Simple baseline strategy
+- **Moving Average Crossover**: Trade on MA crossovers
 
-See `simple_backtest/examples/` for implementations.
+See `notebooks/` for more strategy examples (RSI, Bollinger Bands, etc.).
 
 ## License
 

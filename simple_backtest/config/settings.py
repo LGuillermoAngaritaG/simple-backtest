@@ -1,4 +1,4 @@
-"""Configuration module for backtesting framework using Pydantic Settings."""
+"""Backtest configuration with Pydantic validation."""
 
 from datetime import datetime
 from typing import Literal, Optional
@@ -7,21 +7,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class BacktestConfig(BaseModel):
-    """Configuration for backtesting runs with comprehensive validation.
-
-    Attributes:
-        initial_capital: Starting capital for backtesting (default: 1000.0)
-        lookback_period: Number of historical ticks for strategy context (default: 30)
-        commission_type: Type of commission model ('percentage', 'flat', 'tiered', 'custom')
-        commission_value: Commission value (interpretation depends on commission_type)
-        execution_price: Price to use for trade execution ('open', 'close', 'vwap', 'custom')
-        trading_start_date: Start date for trading period
-        trading_end_date: End date for trading period
-        enable_caching: Enable data and metric caching (default: True)
-        parallel_execution: Enable parallel strategy execution (default: True)
-        n_jobs: Number of parallel jobs (-1 for all cores, default: -1)
-        risk_free_rate: Annual risk-free rate for Sharpe/Sortino calculations (default: 0.0)
-    """
+    """Backtest configuration with validation."""
 
     initial_capital: float = Field(default=1000.0, gt=0, description="Starting capital")
     lookback_period: int = Field(default=30, ge=1, description="Historical ticks for context")
@@ -34,30 +20,24 @@ class BacktestConfig(BaseModel):
     execution_price: Literal["open", "close", "vwap", "custom"] = Field(
         default="open", description="Price for trade execution"
     )
-    trading_start_date: Optional[datetime] = Field(
-        default=None, description="Trading period start"
-    )
-    trading_end_date: Optional[datetime] = Field(
-        default=None, description="Trading period end"
-    )
+    trading_start_date: Optional[datetime] = Field(default=None, description="Trading period start")
+    trading_end_date: Optional[datetime] = Field(default=None, description="Trading period end")
     enable_caching: bool = Field(default=True, description="Enable caching")
     parallel_execution: bool = Field(default=True, description="Parallel strategy execution")
     n_jobs: int = Field(default=-1, description="Number of parallel jobs (-1 = all cores)")
-    risk_free_rate: float = Field(
-        default=0.0, ge=0, le=1, description="Annual risk-free rate"
-    )
+    risk_free_rate: float = Field(default=0.0, ge=0, le=1, description="Annual risk-free rate")
 
     @field_validator("n_jobs")
     @classmethod
     def validate_n_jobs(cls, v: int) -> int:
-        """Validate n_jobs is either -1 or positive."""
+        """Validate n_jobs is -1 or positive."""
         if v != -1 and v < 1:
             raise ValueError("n_jobs must be -1 (all cores) or a positive integer")
         return v
 
     @model_validator(mode="after")
     def validate_date_range(self) -> "BacktestConfig":
-        """Validate trading date range is logical."""
+        """Validate date range logic."""
         if self.trading_start_date and self.trading_end_date:
             if self.trading_start_date >= self.trading_end_date:
                 raise ValueError(
@@ -69,15 +49,11 @@ class BacktestConfig(BaseModel):
     def validate_against_data(
         self, data_start: datetime, data_end: datetime, total_rows: int
     ) -> None:
-        """Validate configuration against actual data constraints.
+        """Validate config against data constraints.
 
-        Args:
-            data_start: First date in dataset
-            data_end: Last date in dataset
-            total_rows: Total number of rows in dataset
-
-        Raises:
-            ValueError: If configuration is incompatible with data
+        :param data_start: First date in dataset
+        :param data_end: Last date in dataset
+        :param total_rows: Total rows in dataset
         """
         # Check lookback period fits in data
         if self.lookback_period >= total_rows:
@@ -98,8 +74,7 @@ class BacktestConfig(BaseModel):
         if self.trading_end_date:
             if self.trading_end_date > data_end:
                 raise ValueError(
-                    f"trading_end_date ({self.trading_end_date}) is after "
-                    f"data end ({data_end})"
+                    f"trading_end_date ({self.trading_end_date}) is after data end ({data_end})"
                 )
 
         # Ensure enough data for lookback before trading starts
@@ -111,7 +86,7 @@ class BacktestConfig(BaseModel):
             )
 
     class Config:
-        """Pydantic configuration."""
+        """Pydantic config."""
 
         json_schema_extra = {
             "example": {

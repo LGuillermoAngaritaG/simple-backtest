@@ -1,4 +1,4 @@
-"""Commission calculation strategies using Factory Pattern."""
+"""Commission calculation functions."""
 
 from typing import Callable, List, Tuple
 
@@ -8,17 +8,10 @@ from simple_backtest.config.settings import BacktestConfig
 def percentage_commission(shares: float, price: float, rate: float) -> float:
     """Calculate commission as percentage of trade value.
 
-    Args:
-        shares: Number of shares traded
-        price: Price per share
-        rate: Commission rate (e.g., 0.001 for 0.1%)
-
-    Returns:
-        Commission amount
-
-    Example:
-        >>> percentage_commission(100, 50.0, 0.001)
-        5.0  # 0.1% of $5000
+    :param shares: Shares traded
+    :param price: Price per share
+    :param rate: Commission rate (e.g., 0.001 for 0.1%)
+    :return: Commission amount
     """
     return shares * price * rate
 
@@ -26,40 +19,21 @@ def percentage_commission(shares: float, price: float, rate: float) -> float:
 def flat_commission(shares: float, price: float, flat_fee: float) -> float:
     """Calculate flat commission per trade.
 
-    Args:
-        shares: Number of shares traded (unused, for signature compatibility)
-        price: Price per share (unused, for signature compatibility)
-        flat_fee: Flat commission amount
-
-    Returns:
-        Commission amount
-
-    Example:
-        >>> flat_commission(100, 50.0, 10.0)
-        10.0
+    :param shares: Unused (for signature compatibility)
+    :param price: Unused (for signature compatibility)
+    :param flat_fee: Flat commission amount
+    :return: Commission amount
     """
     return flat_fee
 
 
 def tiered_commission(shares: float, price: float, tiers: List[Tuple[float, float]]) -> float:
-    """Calculate tiered commission based on trade value thresholds.
+    """Calculate tiered commission based on trade value.
 
-    Args:
-        shares: Number of shares traded
-        price: Price per share
-        tiers: List of (threshold, rate) tuples, sorted by threshold ascending.
-               Example: [(1000, 0.002), (5000, 0.001), (float('inf'), 0.0005)]
-               - Up to $1000: 0.2%
-               - $1000-$5000: 0.1%
-               - Above $5000: 0.05%
-
-    Returns:
-        Commission amount
-
-    Example:
-        >>> tiers = [(1000, 0.002), (5000, 0.001), (float('inf'), 0.0005)]
-        >>> tiered_commission(100, 60.0, tiers)  # $6000 trade
-        6.0  # (1000*0.002) + (4000*0.001) + (1000*0.0005) = 2 + 4 + 0.5 = 6.5
+    :param shares: Shares traded
+    :param price: Price per share
+    :param tiers: List of (threshold, rate) tuples sorted by threshold
+    :return: Commission amount
     """
     trade_value = shares * price
     commission = 0.0
@@ -79,24 +53,10 @@ def tiered_commission(shares: float, price: float, tiers: List[Tuple[float, floa
 
 
 def get_commission_calculator(config: BacktestConfig) -> Callable[[float, float], float]:
-    """Factory function to create commission calculator based on config.
+    """Create commission calculator from config.
 
-    Implements Factory Pattern for flexible commission model creation.
-
-    Args:
-        config: BacktestConfig with commission_type and commission_value
-
-    Returns:
-        Callable taking (shares, price) and returning commission amount
-
-    Raises:
-        ValueError: If commission_type is invalid or custom callable not provided
-
-    Example:
-        >>> config = BacktestConfig(commission_type='percentage', commission_value=0.001)
-        >>> calc = get_commission_calculator(config)
-        >>> calc(100, 50.0)
-        5.0
+    :param config: BacktestConfig with commission settings
+    :return: Commission function (shares, price) -> commission
     """
     if config.commission_type == "percentage":
         rate = config.commission_value
@@ -136,25 +96,15 @@ def get_commission_calculator(config: BacktestConfig) -> Callable[[float, float]
         )
 
 
-def create_custom_commission(func: Callable[[float, float], float]) -> Callable[[float, float], float]:
-    """Wrap a custom commission function with validation.
+def create_custom_commission(
+    func: Callable[[float, float], float],
+) -> Callable[[float, float], float]:
+    """Wrap custom commission function with validation.
 
-    Args:
-        func: Custom commission function taking (shares, price) -> commission
-
-    Returns:
-        Validated commission calculator
-
-    Raises:
-        ValueError: If custom function returns negative commission
-
-    Example:
-        >>> def my_commission(shares, price):
-        ...     return 5.0 if shares * price < 1000 else 10.0
-        >>> calc = create_custom_commission(my_commission)
-        >>> calc(10, 50.0)  # $500 trade
-        5.0
+    :param func: Commission function (shares, price) -> commission
+    :return: Validated commission calculator
     """
+
     def validated_commission(shares: float, price: float) -> float:
         commission = func(shares, price)
         if commission < 0:
