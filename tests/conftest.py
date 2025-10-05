@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from simple_backtest.config.settings import BacktestConfig
-from simple_backtest.strategy.strategy_base import Strategy
+from simple_backtest.strategy.base import Strategy
 
 
 @pytest.fixture

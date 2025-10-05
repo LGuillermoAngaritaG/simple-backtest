@@ -6,7 +6,7 @@ from typing import List
 
 import pandas as pd
 
-from simple_backtest.strategy.strategy_base import Strategy
+from simple_backtest.strategy.base import Strategy
 
 
 class BacktestError(Exception):
@@ -33,35 +33,165 @@ class StrategyError(BacktestError):
     pass
 
 
-def validate_dataframe(data: pd.DataFrame, strict: bool = True) -> None:
-    """Validate DataFrame structure for backtesting.
+def validate_dataframe(
+    data: pd.DataFrame, strict: bool = True, require_volume: bool = False
+) -> None:
+    """Validate DataFrame structure for backtesting with actionable error messages.
 
-    :param data: DataFrame to validate
+    This framework is asset-agnostic and works with any OHLCV data:
+    - Stocks (AAPL, TSLA, etc.)
+    - Forex/Currencies (EUR/USD, GBP/JPY, etc.)
+    - Crypto (BTC, ETH, etc.)
+    - Futures (ES, CL, etc.)
+
+    :param data: DataFrame to validate (OHLCV format)
     :param strict: If True, raise errors; if False, warn only
+    :param require_volume: If True, Volume column is required; if False, it's optional
     """
+    # Check if DataFrame
+    if not isinstance(data, pd.DataFrame):
+        raise DataValidationError(
+            f"Expected pandas DataFrame, got {type(data).__name__}.\n"
+            f"\n"
+            f"→ Fix: Load your data into a DataFrame:\n"
+            f"  import pandas as pd\n"
+            f"  df = pd.read_csv('data.csv', index_col=0, parse_dates=True)\n"
+            f"\n"
+            f"  Or if you have lists/arrays:\n"
+            f"  df = pd.DataFrame({{'Open': [...], 'High': [...], ...}})"
+        )
+
     if data.empty:
-        raise DataValidationError("DataFrame is empty")
+        raise DataValidationError(
+            "DataFrame is empty (0 rows).\n"
+            "\n"
+            "→ Fix: Ensure you loaded data correctly:\n"
+            "  print(df.head())  # Check if data loaded\n"
+            "  print(len(df))    # Check number of rows"
+        )
+
+    # Handle MultiIndex columns (common with yfinance)
+    if isinstance(data.columns, pd.MultiIndex):
+        # Get unique values from all levels except the first (which should be OHLCV names)
+        if data.columns.nlevels == 2:
+            # Typical yfinance structure: (OHLCV, Ticker)
+            level_1_values = data.columns.get_level_values(1).unique()
+
+            if len(level_1_values) == 1:
+                # Single ticker - flatten by dropping the second level
+                data.columns = data.columns.droplevel(1)
+            else:
+                # Multiple tickers - user needs to select one
+                raise DataValidationError(
+                    f"DataFrame has MultiIndex columns with multiple tickers: {list(level_1_values)}\n"
+                    f"\n"
+                    f"The framework works with single-asset data at a time.\n"
+                    f"\n"
+                    f"→ Fix: Select a single ticker:\n"
+                    f"  # Option 1: Select by ticker name\n"
+                    f"  data = data.xs('{level_1_values[0]}', level=1, axis=1)\n"
+                    f"\n"
+                    f"  # Option 2: If you want a specific ticker\n"
+                    f"  ticker = 'AAPL'  # Replace with your ticker\n"
+                    f"  data = data.xs(ticker, level=1, axis=1)\n"
+                    f"\n"
+                    f"  # Option 3: Download single ticker from yfinance\n"
+                    f"  data = yf.download('AAPL', start='2020-01-01', end='2023-12-31')"
+                )
+        else:
+            # Complex MultiIndex - provide generic error
+            raise DataValidationError(
+                f"DataFrame has complex MultiIndex columns with {data.columns.nlevels} levels.\n"
+                f"\n"
+                f"Column structure: {data.columns.tolist()[:5]}...\n"
+                f"\n"
+                f"→ Fix: Flatten to single-level columns with standard OHLCV names:\n"
+                f"  # Check current structure\n"
+                f"  print(data.columns)\n"
+                f"  \n"
+                f"  # Then flatten appropriately based on your data structure"
+            )
 
     # Check required columns
-    required_columns = ["Open", "High", "Low", "Close", "Volume"]
+    required_columns = ["Open", "High", "Low", "Close"]
+    if require_volume:
+        required_columns.append("Volume")
+
     missing_columns = [col for col in required_columns if col not in data.columns]
 
     if missing_columns:
+        col_examples = "      'open': 'Open',\n      'high': 'High',\n      'low': 'Low',\n      'close': 'Close'"
+        if require_volume or "Volume" in missing_columns:
+            col_examples += ",\n      'volume': 'Volume'"
+
         raise DataValidationError(
-            f"DataFrame missing required columns: {missing_columns}. Required: {required_columns}"
+            f"Missing required columns: {missing_columns}\n"
+            f"\n"
+            f"Required columns: {required_columns}\n"
+            f"Your columns: {list(data.columns)}\n"
+            f"\n"
+            f"→ Fix option 1: Rename columns to match (case-sensitive!):\n"
+            f"  df.rename(columns={{\n"
+            f"{col_examples}\n"
+            f"  }}, inplace=True)\n"
+            f"\n"
+            f"→ Fix option 2: Rename all columns at once:\n"
+            f"  df.columns = {required_columns}"
         )
 
+    # Check for duplicate columns
+    if data.columns.duplicated().any():
+        duplicates = data.columns[data.columns.duplicated()].tolist()
+        raise DataValidationError(f"DataFrame has duplicate column names: {duplicates}")
+
     # Validate data types
-    for col in ["Open", "High", "Low", "Close", "Volume"]:
-        if not pd.api.types.is_numeric_dtype(data[col]):
-            raise DataValidationError(f"Column '{col}' must be numeric, got {data[col].dtype}")
+    cols_to_validate = ["Open", "High", "Low", "Close"]
+    if "Volume" in data.columns:
+        cols_to_validate.append("Volume")
+
+    for col in cols_to_validate:
+        col_data = data[col]
+
+        if not pd.api.types.is_numeric_dtype(col_data):
+            dtype = col_data.dtype if hasattr(col_data, "dtype") else type(col_data)
+            # Get sample values safely (handle both Series and DataFrame)
+            try:
+                sample_values = col_data.head(3).tolist()
+            except AttributeError:
+                sample_values = str(col_data.head(3))
+
+            raise DataValidationError(
+                f"Column '{col}' must be numeric, got {dtype}.\n"
+                f"\n"
+                f"Current type: {dtype}\n"
+                f"Sample values: {sample_values}\n"
+                f"\n"
+                f"→ Fix: Convert to numeric:\n"
+                f"  df['{col}'] = pd.to_numeric(df['{col}'], errors='coerce')\n"
+                f"  df.dropna(inplace=True)  # Remove rows that couldn't convert"
+            )
 
     # Check for missing values
     missing_counts = data[required_columns].isnull().sum()
     if missing_counts.any():
+        nan_columns = missing_counts[missing_counts > 0].index.tolist()
+        nan_count = {col: missing_counts[col] for col in nan_columns}
+
         if strict:
             raise DataValidationError(
-                f"DataFrame contains missing values:\n{missing_counts[missing_counts > 0]}"
+                f"Found NaN values in columns: {nan_columns}\n"
+                f"\n"
+                f"NaN counts: {nan_count}\n"
+                f"Total rows: {len(data)}\n"
+                f"\n"
+                f"→ Fix option 1: Forward-fill missing values:\n"
+                f"  df.fillna(method='ffill', inplace=True)\n"
+                f"\n"
+                f"→ Fix option 2: Drop rows with NaN:\n"
+                f"  df.dropna(inplace=True)\n"
+                f"\n"
+                f"→ Fix option 3: Fill with specific value:\n"
+                f"  df.fillna(0, inplace=True)"
             )
         else:
             warnings.warn(
@@ -80,7 +210,20 @@ def validate_dataframe(data: pd.DataFrame, strict: bool = True) -> None:
     if not isinstance(data.index, pd.DatetimeIndex):
         if strict:
             raise DataValidationError(
-                f"DataFrame index must be DatetimeIndex, got {type(data.index)}"
+                f"DataFrame index must be DatetimeIndex, got {type(data.index).__name__}.\n"
+                f"\n"
+                f"Current index type: {type(data.index).__name__}\n"
+                f"First few index values: {data.index[:3].tolist()}\n"
+                f"\n"
+                f"→ Fix option 1: Convert existing index to datetime:\n"
+                f"  df.index = pd.to_datetime(df.index)\n"
+                f"\n"
+                f"→ Fix option 2: Parse dates when loading CSV:\n"
+                f"  df = pd.read_csv('data.csv', index_col=0, parse_dates=True)\n"
+                f"\n"
+                f"→ Fix option 3: Set a datetime column as index:\n"
+                f"  df['Date'] = pd.to_datetime(df['Date'])\n"
+                f"  df.set_index('Date', inplace=True)"
             )
         else:
             warnings.warn(
@@ -94,7 +237,13 @@ def validate_dataframe(data: pd.DataFrame, strict: bool = True) -> None:
         if not data.index.is_monotonic_increasing:
             if strict:
                 raise DataValidationError(
-                    "DataFrame index (dates) must be sorted in ascending order"
+                    f"DataFrame index must be sorted in ascending order.\n"
+                    f"\n"
+                    f"First few dates: {data.index[:3].tolist()}\n"
+                    f"Last few dates: {data.index[-3:].tolist()}\n"
+                    f"\n"
+                    f"→ Fix: Sort your data by date:\n"
+                    f"  df.sort_index(inplace=True)"
                 )
             else:
                 warnings.warn(

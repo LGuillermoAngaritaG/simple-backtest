@@ -8,6 +8,12 @@ from simple_backtest.utils.execution import (
     create_execution_price_extractor,
     get_execution_price,
 )
+from simple_backtest.utils.logger import (
+    disable_logging,
+    enable_debug_logging,
+    get_logger,
+    setup_logging,
+)
 from simple_backtest.utils.validation import (
     BacktestError,
     DataValidationError,
@@ -33,4 +39,9 @@ __all__ = [
     "DataValidationError",
     "DateRangeError",
     "StrategyError",
+    # Logging
+    "get_logger",
+    "setup_logging",
+    "disable_logging",
+    "enable_debug_logging",
 ]

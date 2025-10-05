@@ -16,16 +16,28 @@ def get_close_price(row: pd.Series) -> float:
 
 
 def get_vwap(row: pd.Series) -> float:
-    """Calculate Volume Weighted Average Price."""
+    """Calculate Volume Weighted Average Price.
+
+    Falls back to typical price if Volume column missing (e.g., for forex data)
+    or if volume is zero.
+    """
     high = float(row["High"])
     low = float(row["Low"])
     close = float(row["Close"])
+
+    # Handle missing Volume column (common for forex/some asset types)
+    if "Volume" not in row.index:
+        # Fall back to typical price
+        return (high + low + close) / 3
+
     volume = float(row["Volume"])
 
     if volume == 0:
         # If no volume, fall back to typical price
         return (high + low + close) / 3
 
+    # Note: This is a simplified VWAP using typical price
+    # True VWAP would require intraday data
     typical_price = (high + low + close) / 3
     return typical_price
 
@@ -90,26 +102,37 @@ def create_execution_price_extractor(
         )
 
 
-def validate_ohlcv_row(row: pd.Series) -> None:
-    """Validate OHLCV row format.
+def validate_ohlcv_row(row: pd.Series, require_volume: bool = False) -> None:
+    """Validate OHLC(V) row format.
 
     :param row: Series to validate
+    :param require_volume: If True, Volume column is required
     """
-    required_columns = ["Open", "High", "Low", "Close", "Volume"]
+    required_columns = ["Open", "High", "Low", "Close"]
+    if require_volume:
+        required_columns.append("Volume")
+
     missing_columns = [col for col in required_columns if col not in row.index]
 
     if missing_columns:
-        raise KeyError(f"Missing required OHLCV columns: {missing_columns}")
+        raise KeyError(f"Missing required OHLC columns: {missing_columns}")
 
     # Validate price relationships
     open_price = row["Open"]
     high = row["High"]
     low = row["Low"]
     close = row["Close"]
-    volume = row["Volume"]
 
-    if any(val < 0 for val in [open_price, high, low, close, volume]):
-        raise ValueError(f"OHLCV values must be non-negative: {row.to_dict()}")
+    # Check price values
+    price_values = [open_price, high, low, close]
+    if any(val < 0 for val in price_values):
+        raise ValueError(f"OHLC values must be non-negative: {row.to_dict()}")
+
+    # Check volume if present
+    if "Volume" in row.index:
+        volume = row["Volume"]
+        if volume < 0:
+            raise ValueError(f"Volume must be non-negative: {volume}")
 
     if high < low:
         raise ValueError(f"High ({high}) must be >= Low ({low})")

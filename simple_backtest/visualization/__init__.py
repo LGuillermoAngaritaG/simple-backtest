@@ -8,6 +8,7 @@ from simple_backtest.visualization.plotter import (
     plot_monthly_returns,
     plot_returns_distribution,
     plot_rolling_metrics,
+    plot_strategy_trades,
     plot_trades,
 )
 
@@ -17,6 +18,7 @@ __all__ = [
     "plot_returns_distribution",
     "plot_monthly_returns",
     "plot_trades",
+    "plot_strategy_trades",
     "plot_rolling_metrics",
     "create_comparison_table",
     "plot_all",

@@ -9,15 +9,20 @@ from tqdm import tqdm
 
 from simple_backtest.config.settings import BacktestConfig
 from simple_backtest.core.portfolio import Portfolio
+from simple_backtest.core.results import BacktestResults
 from simple_backtest.metrics.calculator import calculate_metrics
-from simple_backtest.strategy.strategy_base import Strategy
+from simple_backtest.strategy.base import Strategy
 from simple_backtest.utils.commission import get_commission_calculator
 from simple_backtest.utils.execution import create_execution_price_extractor
+from simple_backtest.utils.logger import get_logger
 from simple_backtest.utils.validation import (
     validate_dataframe,
     validate_date_range,
     validate_strategies,
 )
+
+# Initialize logger
+logger = get_logger(__name__)
 
 
 class Backtest:
@@ -87,11 +92,11 @@ class Backtest:
         # Get trading data slice
         self.trading_data = self.data.loc[self.trading_start_date : self.trading_end_date]
 
-    def run(self, strategies: List[Strategy]) -> Dict[str, Dict[str, Any]]:
+    def run(self, strategies: List[Strategy]) -> BacktestResults:
         """Run backtest for all strategies.
 
         :param strategies: List of strategies to backtest
-        :return: Dict mapping strategy names to results (metrics, portfolio_values, trade_history, returns)
+        :return: BacktestResults object with methods for accessing and comparing results
         """
         # Validate strategies
         validate_strategies(strategies)
@@ -121,7 +126,7 @@ class Backtest:
         for strategy, result in zip(strategies, strategy_results):
             results[strategy.get_name()] = result
 
-        return results
+        return BacktestResults(results)
 
     def _run_single_strategy(self, strategy: Strategy) -> Dict[str, Any]:
         """Run backtest for single strategy.
@@ -172,11 +177,24 @@ class Backtest:
 
             # Get strategy prediction
             try:
+                # Inject portfolio state for helper methods
+                strategy._portfolio_state = {
+                    "cash": portfolio.cash,
+                    "total_shares": portfolio.get_total_shares(),
+                    "portfolio_value": portfolio_value,
+                    "positions": portfolio.positions,
+                    "current_price": current_price,
+                    "is_last_day": i == end_idx,  # Flag for last trading day
+                }
+
                 prediction = strategy.predict(lookback_data, portfolio.get_trade_history())
                 strategy.validate_prediction(prediction)
             except Exception as e:
                 # Log error and continue
-                print(f"Strategy {strategy.get_name()} error at {current_date}: {e}")
+                logger.error(
+                    f"Strategy '{strategy.get_name()}' prediction error at {current_date}: {e}",
+                    exc_info=True,
+                )
                 continue
 
             signal = prediction["signal"]
@@ -197,7 +215,9 @@ class Backtest:
                         )
                         strategy.on_trade_executed(trade_info)
                     except Exception as e:
-                        print(f"Buy error for {strategy.get_name()} at {current_date}: {e}")
+                        logger.warning(
+                            f"Buy order failed for '{strategy.get_name()}' at {current_date}: {e}"
+                        )
 
             elif signal == "sell" and size > 0:
                 total_shares = portfolio.get_total_shares()
@@ -217,7 +237,9 @@ class Backtest:
                         )
                         strategy.on_trade_executed(trade_info)
                     except Exception as e:
-                        print(f"Sell error for {strategy.get_name()} at {current_date}: {e}")
+                        logger.warning(
+                            f"Sell order failed for '{strategy.get_name()}' at {current_date}: {e}"
+                        )
 
         # Create portfolio values series
         portfolio_series = pd.Series(portfolio_values, index=timestamps)
@@ -257,17 +279,53 @@ class Backtest:
         first_row = self.data.iloc[start_idx]
         first_price = self.price_extractor(first_row)
 
-        # Buy as many shares as possible
-        commission = self.commission_calculator(1, first_price)
-        max_shares = (self.config.initial_capital - commission) / first_price
+        # Calculate maximum affordable shares accounting for commission
+        # Use iterative approach that works for all commission types
+        if self.config.commission_type == "percentage":
+            # For percentage: cost = shares * price * (1 + rate)
+            rate = self.config.commission_value
+            max_shares = self.config.initial_capital / (first_price * (1 + rate))
+        elif self.config.commission_type == "flat":
+            # For flat: cost = shares * price + flat_fee
+            flat_fee = self.config.commission_value
+            max_shares = (self.config.initial_capital - flat_fee) / first_price
+        else:
+            # For tiered/custom: estimate and iterate
+            # Start with a conservative estimate
+            max_shares = self.config.initial_capital / (first_price * 1.01)
 
+            # Iteratively adjust to find maximum affordable shares
+            for _ in range(10):  # Max 10 iterations
+                commission = self.commission_calculator(max_shares, first_price)
+                total_cost = max_shares * first_price + commission
+
+                if total_cost <= self.config.initial_capital:
+                    # Can afford this, try slightly more
+                    max_shares *= 1.001
+                else:
+                    # Too expensive, reduce
+                    max_shares *= 0.999
+
+            # Final check with actual commission
+            commission = self.commission_calculator(max_shares, first_price)
+            while max_shares * first_price + commission > self.config.initial_capital:
+                max_shares *= 0.99
+                commission = self.commission_calculator(max_shares, first_price)
+
+        # Execute buy with correct commission
+        # Reduce shares slightly to account for floating point precision
         if max_shares > 0:
-            portfolio.execute_buy(
-                shares=max_shares,
-                price=first_price,
-                commission=commission,
-                timestamp=first_date,
-            )
+            max_shares *= 0.9999  # 0.01% safety margin for floating point precision
+            commission = self.commission_calculator(max_shares, first_price)
+
+            # Final safety check
+            if portfolio.can_afford(max_shares, first_price, commission):
+                portfolio.execute_buy(
+                    shares=max_shares,
+                    price=first_price,
+                    commission=commission,
+                    timestamp=first_date,
+                )
 
         # Track portfolio values
         portfolio_values = []

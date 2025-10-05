@@ -2,11 +2,11 @@
 
 import pytest
 
-from simple_backtest.strategy.strategy_base import Strategy
+from simple_backtest.strategy.base import Strategy
 
 
-class TestStrategy(Strategy):
-    """Test strategy implementation."""
+class DummyStrategy(Strategy):
+    """Dummy strategy implementation for testing."""
 
     def predict(self, data, trade_history):
         """Return a buy signal."""
@@ -15,10 +15,10 @@ class TestStrategy(Strategy):
 
 def test_strategy_initialization():
     """Test strategy initialization."""
-    strategy = TestStrategy()
-    assert strategy.get_name() == "TestStrategy"
+    strategy = DummyStrategy()
+    assert strategy.get_name() == "DummyStrategy"
 
-    strategy_named = TestStrategy(name="CustomName")
+    strategy_named = DummyStrategy(name="CustomName")
     assert strategy_named.get_name() == "CustomName"
 
 
@@ -30,7 +30,7 @@ def test_strategy_must_implement_predict():
 
 def test_validate_prediction_valid():
     """Test prediction validation with valid input."""
-    strategy = TestStrategy()
+    strategy = DummyStrategy()
 
     # Valid buy signal
     prediction = {"signal": "buy", "size": 10, "order_ids": None}
@@ -47,7 +47,7 @@ def test_validate_prediction_valid():
 
 def test_validate_prediction_missing_keys():
     """Test prediction validation fails with missing keys."""
-    strategy = TestStrategy()
+    strategy = DummyStrategy()
 
     with pytest.raises(ValueError, match="missing required keys"):
         strategy.validate_prediction({"signal": "buy"})
@@ -58,7 +58,7 @@ def test_validate_prediction_missing_keys():
 
 def test_validate_prediction_invalid_signal():
     """Test prediction validation fails with invalid signal."""
-    strategy = TestStrategy()
+    strategy = DummyStrategy()
 
     with pytest.raises(ValueError, match="invalid signal"):
         strategy.validate_prediction({"signal": "invalid", "size": 10})
@@ -66,7 +66,7 @@ def test_validate_prediction_invalid_signal():
 
 def test_validate_prediction_invalid_size():
     """Test prediction validation fails with invalid size."""
-    strategy = TestStrategy()
+    strategy = DummyStrategy()
 
     # Negative size
     with pytest.raises(ValueError, match="invalid size"):
@@ -79,7 +79,7 @@ def test_validate_prediction_invalid_size():
 
 def test_validate_prediction_sell_without_order_ids():
     """Test sell signal requires order_ids key."""
-    strategy = TestStrategy()
+    strategy = DummyStrategy()
 
     with pytest.raises(ValueError, match="did not specify 'order_ids'"):
         strategy.validate_prediction({"signal": "sell", "size": 10})
@@ -87,7 +87,7 @@ def test_validate_prediction_sell_without_order_ids():
 
 def test_strategy_reset_state():
     """Test strategy state reset."""
-    strategy = TestStrategy()
+    strategy = DummyStrategy()
     strategy._state_initialized = True
 
     strategy.reset_state()
@@ -120,8 +120,8 @@ def test_on_trade_executed_hook():
 
 def test_strategy_repr():
     """Test strategy string representation."""
-    strategy = TestStrategy(name="MyStrategy")
+    strategy = DummyStrategy(name="MyStrategy")
     repr_str = repr(strategy)
 
-    assert "TestStrategy" in repr_str
+    assert "DummyStrategy" in repr_str
     assert "MyStrategy" in repr_str

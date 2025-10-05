@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from simple_backtest.strategy.strategy_base import Strategy
+from simple_backtest.strategy.base import Strategy
 
 
 class MovingAverageStrategy(Strategy):
@@ -38,31 +38,19 @@ class MovingAverageStrategy(Strategy):
         """Generate signal based on MA crossover.
 
         :param data: OHLCV DataFrame
-        :param trade_history: Past trades
+        :param trade_history: Past trades (unused - for backward compatibility)
         :return: Trading signal dict
         """
         if len(data) < self.long_window:
-            return {"signal": "hold", "size": 0, "order_ids": None}
+            return self.hold()
 
         short_ma = data["Close"].tail(self.short_window).mean()
         long_ma = data["Close"].tail(self.long_window).mean()
-        has_position = self._has_open_position(trade_history)
 
-        if short_ma > long_ma and not has_position:
-            return {"signal": "buy", "size": self.shares, "order_ids": None}
-        elif short_ma < long_ma and has_position:
-            return {"signal": "sell", "size": self.shares, "order_ids": None}
+        # Use built-in helper method instead of manual tracking
+        if short_ma > long_ma and not self.has_position():
+            return self.buy(self.shares)
+        elif short_ma < long_ma and self.has_position():
+            return self.sell(self.shares)
         else:
-            return {"signal": "hold", "size": 0, "order_ids": None}
-
-    def _has_open_position(self, trade_history: List[Dict[str, Any]]) -> bool:
-        """Check if strategy has open positions.
-
-        :param trade_history: Past trades
-        :return: True if has open positions
-        """
-        if not trade_history:
-            return False
-        total_bought = sum(t["shares"] for t in trade_history if t["signal"] == "buy")
-        total_sold = sum(t["shares"] for t in trade_history if t["signal"] == "sell")
-        return total_bought > total_sold
+            return self.hold()

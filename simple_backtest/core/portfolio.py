@@ -6,7 +6,18 @@ from uuid import uuid4
 
 
 class Portfolio:
-    """Tracks cash, positions, and trade history with FIFO position management."""
+    """Tracks cash, positions, and trade history with FIFO position management.
+
+    ASSET-AGNOSTIC DESIGN:
+    This portfolio works with any asset type (stocks, forex, crypto, futures, etc.).
+    The term "shares" throughout this class refers to generic "units" or "quantity":
+    - For stocks: actual shares (supports fractional shares like 1.5 AAPL)
+    - For forex: lot size or units (e.g., 100000 EUR/USD)
+    - For crypto: coins/tokens (e.g., 0.5 BTC)
+    - For futures: number of contracts (e.g., 2.5 ES contracts)
+
+    All quantities are stored as floats to support fractional units.
+    """
 
     def __init__(self, initial_capital: float):
         """Initialize portfolio.
@@ -22,13 +33,16 @@ class Portfolio:
         self.trade_history: List[Dict[str, Any]] = []
 
     def get_total_shares(self) -> float:
-        """Return total shares held across all positions."""
+        """Return total units/quantity held across all positions.
+
+        Note: 'shares' here means generic units (stocks, lots, coins, contracts, etc.)
+        """
         return sum(pos["shares"] for pos in self.positions.values())
 
     def get_portfolio_value(self, current_price: float) -> float:
         """Calculate total portfolio value.
 
-        :param current_price: Current market price per share
+        :param current_price: Current market price per unit
         :return: Cash + position values
         """
         position_value = self.get_total_shares() * current_price
@@ -37,8 +51,8 @@ class Portfolio:
     def can_afford(self, shares: float, price: float, commission: float) -> bool:
         """Check if sufficient cash for purchase.
 
-        :param shares: Shares to buy
-        :param price: Price per share
+        :param shares: Units/quantity to buy (fractional allowed)
+        :param price: Price per unit
         :param commission: Commission cost
         :return: True if affordable
         """
@@ -55,8 +69,8 @@ class Portfolio:
     ) -> Dict[str, Any]:
         """Execute buy order and update portfolio.
 
-        :param shares: Shares to buy (positive)
-        :param price: Price per share (positive)
+        :param shares: Units/quantity to buy (positive, fractional allowed)
+        :param price: Price per unit (positive)
         :param commission: Commission cost (non-negative)
         :param timestamp: Execution time
         :param order_id: Order ID (auto-generated if None)
@@ -115,8 +129,8 @@ class Portfolio:
     ) -> Dict[str, Any]:
         """Execute sell order using FIFO or specified order IDs.
 
-        :param shares: Shares to sell (positive)
-        :param price: Price per share (positive)
+        :param shares: Units/quantity to sell (positive, fractional allowed)
+        :param price: Price per unit (positive)
         :param commission: Commission cost (non-negative)
         :param timestamp: Execution time
         :param order_ids: Specific orders to sell from (FIFO if None)

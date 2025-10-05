@@ -22,15 +22,49 @@ COLORS = [
 ]
 
 
-def plot_equity_curve(results: Dict[str, Dict[str, Any]]) -> go.Figure:
+def _convert_results_to_dict(results) -> Dict[str, Dict[str, Any]]:
+    """Convert BacktestResults object to dict format for plotting.
+
+    Args:
+        results: BacktestResults object or dict
+
+    Returns:
+        Dict mapping strategy names to result dicts
+    """
+    from simple_backtest.core.results import BacktestResults
+
+    if isinstance(results, BacktestResults):
+        results_dict = {}
+        for name in results.list_strategies():
+            strategy_result = results.get_strategy(name)
+            results_dict[name] = {
+                "portfolio_values": strategy_result.portfolio_values,
+                "trade_history": strategy_result.trade_history,
+                "returns": strategy_result.returns,
+                "metrics": strategy_result.metrics,
+            }
+        if results.benchmark:
+            results_dict["benchmark"] = {
+                "portfolio_values": results.benchmark.portfolio_values,
+                "trade_history": results.benchmark.trade_history,
+                "returns": results.benchmark.returns,
+                "metrics": results.benchmark.metrics,
+            }
+        return results_dict
+
+    return results
+
+
+def plot_equity_curve(results) -> go.Figure:
     """Plot equity curves for all strategies and benchmark.
 
     Args:
-        results: Dictionary mapping strategy names to result dictionaries
+        results: BacktestResults object or dictionary mapping strategy names to result dictionaries
 
     Returns:
         Plotly Figure with equity curves
     """
+    results = _convert_results_to_dict(results)
     fig = go.Figure()
 
     for i, (name, result) in enumerate(results.items()):
@@ -70,15 +104,16 @@ def plot_equity_curve(results: Dict[str, Dict[str, Any]]) -> go.Figure:
     return fig
 
 
-def plot_drawdowns(results: Dict[str, Dict[str, Any]]) -> go.Figure:
+def plot_drawdowns(results) -> go.Figure:
     """Plot drawdown chart for all strategies.
 
     Args:
-        results: Dictionary mapping strategy names to result dictionaries
+        results: BacktestResults object or dictionary mapping strategy names to result dictionaries
 
     Returns:
         Plotly Figure with drawdown curves
     """
+    results = _convert_results_to_dict(results)
     fig = go.Figure()
 
     for i, (name, result) in enumerate(results.items()):
@@ -126,15 +161,16 @@ def plot_drawdowns(results: Dict[str, Dict[str, Any]]) -> go.Figure:
     return fig
 
 
-def plot_returns_distribution(results: Dict[str, Dict[str, Any]]) -> go.Figure:
+def plot_returns_distribution(results) -> go.Figure:
     """Plot returns distribution histograms.
 
     Args:
-        results: Dictionary mapping strategy names to result dictionaries
+        results: BacktestResults object or dictionary mapping strategy names to result dictionaries
 
     Returns:
         Plotly Figure with return distributions
     """
+    results = _convert_results_to_dict(results)
     fig = go.Figure()
 
     for i, (name, result) in enumerate(results.items()):
@@ -168,15 +204,16 @@ def plot_returns_distribution(results: Dict[str, Dict[str, Any]]) -> go.Figure:
     return fig
 
 
-def plot_monthly_returns(results: Dict[str, Dict[str, Any]]) -> Dict[str, go.Figure]:
+def plot_monthly_returns(results) -> Dict[str, go.Figure]:
     """Plot monthly returns heatmap for each strategy.
 
     Args:
-        results: Dictionary mapping strategy names to result dictionaries
+        results: BacktestResults object or dictionary mapping strategy names to result dictionaries
 
     Returns:
         Dictionary mapping strategy names to their heatmap figures
     """
+    results = _convert_results_to_dict(results)
     figures = {}
 
     for name, result in results.items():
@@ -186,7 +223,7 @@ def plot_monthly_returns(results: Dict[str, Dict[str, Any]]) -> Dict[str, go.Fig
         returns = result["returns"]
 
         # Resample to monthly returns
-        monthly_returns = (1 + returns).resample("M").prod() - 1
+        monthly_returns = (1 + returns).resample("ME").prod() - 1
         monthly_returns = monthly_returns * 100  # Convert to percentage
 
         # Create year-month matrix
@@ -243,15 +280,16 @@ def plot_monthly_returns(results: Dict[str, Dict[str, Any]]) -> Dict[str, go.Fig
     return figures
 
 
-def plot_trades(results: Dict[str, Dict[str, Any]]) -> Dict[str, go.Figure]:
+def plot_trades(results) -> Dict[str, go.Figure]:
     """Plot trade scatter for each strategy.
 
     Args:
-        results: Dictionary mapping strategy names to result dictionaries
+        results: BacktestResults object or dictionary mapping strategy names to result dictionaries
 
     Returns:
         Dictionary mapping strategy names to their trade scatter figures
     """
+    results = _convert_results_to_dict(results)
     figures = {}
 
     for name, result in results.items():
@@ -301,16 +339,17 @@ def plot_trades(results: Dict[str, Dict[str, Any]]) -> Dict[str, go.Figure]:
     return figures
 
 
-def plot_rolling_metrics(results: Dict[str, Dict[str, Any]], window: int = 30) -> go.Figure:
+def plot_rolling_metrics(results, window: int = 30) -> go.Figure:
     """Plot rolling Sharpe and Sortino ratios.
 
     Args:
-        results: Dictionary mapping strategy names to result dictionaries
+        results: BacktestResults object or dictionary mapping strategy names to result dictionaries
         window: Rolling window size
 
     Returns:
         Plotly Figure with rolling metrics
     """
+    results = _convert_results_to_dict(results)
     fig = make_subplots(
         rows=2,
         cols=1,
@@ -373,15 +412,16 @@ def plot_rolling_metrics(results: Dict[str, Dict[str, Any]], window: int = 30) -
     return fig
 
 
-def create_comparison_table(results: Dict[str, Dict[str, Any]]) -> go.Figure:
+def create_comparison_table(results) -> go.Figure:
     """Create comparison table for all strategies.
 
     Args:
-        results: Dictionary mapping strategy names to result dictionaries
+        results: BacktestResults object or dictionary mapping strategy names to result dictionaries
 
     Returns:
         Plotly Figure with comparison table
     """
+    results = _convert_results_to_dict(results)
     # Extract metrics
     metric_names = [
         "total_return",
@@ -449,12 +489,177 @@ def create_comparison_table(results: Dict[str, Dict[str, Any]]) -> go.Figure:
     return fig
 
 
-def plot_all(results: Dict[str, Dict[str, Any]]) -> None:
+def plot_strategy_trades(
+    price_data: pd.DataFrame,
+    results,
+) -> Dict[str, go.Figure]:
+    """Plot price chart with buy/sell markers for each strategy.
+
+    Creates a separate figure for each strategy showing:
+    - Price data (Close price)
+    - Buy markers (green up triangles)
+    - Sell markers (red down triangles)
+    - Profit/Loss summary text
+
+    Args:
+        price_data: Original OHLCV DataFrame with DatetimeIndex
+        results: BacktestResults object or dictionary mapping strategy names to result dictionaries
+
+    Returns:
+        Dictionary mapping strategy names to their trade plot figures
+
+    Example:
+        >>> figures = plot_strategy_trades(data, results)
+        >>> for fig in figures.values():
+        ...     fig.show()
+    """
+    results = _convert_results_to_dict(results)
+    figures = {}
+
+    for name, result in results.items():
+        # Skip benchmark
+        if name == "benchmark":
+            continue
+
+        trade_history = result["trade_history"]
+        metrics = result["metrics"]
+
+        if not trade_history:
+            continue
+
+        fig = go.Figure()
+
+        # Get trading date range
+        trade_dates = [t["timestamp"] for t in trade_history]
+        if trade_dates:
+            start_date = min(trade_dates)
+            end_date = max(trade_dates)
+            # Add some buffer
+            mask = (price_data.index >= start_date) & (price_data.index <= end_date)
+            plot_data = price_data[mask]
+        else:
+            plot_data = price_data
+
+        # Plot close price
+        price_trace = go.Scatter(
+            x=plot_data.index,
+            y=plot_data["Close"],
+            mode="lines",
+            name="Close Price",
+            line=dict(color="#1f77b4", width=2),
+            hovertemplate="Date: %{x}<br>Price: $%{y:.2f}<extra></extra>",
+        )
+        fig.add_trace(price_trace)
+
+        # Separate buy and sell trades
+        buy_trades = [t for t in trade_history if t["signal"] == "buy"]
+        sell_trades = [t for t in trade_history if t["signal"] == "sell"]
+
+        # Plot buy markers
+        if buy_trades:
+            buy_dates = [t["timestamp"] for t in buy_trades]
+            buy_prices = [t["price"] for t in buy_trades]
+            buy_shares = [t["shares"] for t in buy_trades]
+
+            buy_marker = go.Scatter(
+                x=buy_dates,
+                y=buy_prices,
+                mode="markers",
+                name="Buy",
+                marker=dict(
+                    symbol="triangle-up",
+                    size=12,
+                    color="green",
+                    line=dict(color="darkgreen", width=2),
+                ),
+                hovertemplate="<b>BUY</b><br>Date: %{x}<br>Price: $%{y:.2f}<br>"
+                + "Shares: %{customdata:.2f}<extra></extra>",
+                customdata=buy_shares,
+            )
+            fig.add_trace(buy_marker)
+
+        # Plot sell markers
+        if sell_trades:
+            sell_dates = [t["timestamp"] for t in sell_trades]
+            sell_prices = [t["price"] for t in sell_trades]
+            sell_shares = [t["shares"] for t in sell_trades]
+            sell_pnl = [t.get("pnl", 0) for t in sell_trades]
+
+            sell_marker = go.Scatter(
+                x=sell_dates,
+                y=sell_prices,
+                mode="markers",
+                name="Sell",
+                marker=dict(
+                    symbol="triangle-down",
+                    size=12,
+                    color="red",
+                    line=dict(color="darkred", width=2),
+                ),
+                hovertemplate="<b>SELL</b><br>Date: %{x}<br>Price: $%{y:.2f}<br>"
+                + "Shares: %{customdata[0]:.2f}<br>"
+                + "P&L: $%{customdata[1]:.2f}<extra></extra>",
+                customdata=list(zip(sell_shares, sell_pnl)),
+            )
+            fig.add_trace(sell_marker)
+
+        # Calculate performance metrics for annotation
+        total_return = metrics.get("total_return", 0)
+        sharpe_ratio = metrics.get("sharpe_ratio", 0)
+        win_rate = metrics.get("win_rate", 0)
+        total_trades = metrics.get("total_trades", 0)
+
+        # Determine profit/loss color
+        pnl_color = "green" if total_return > 0 else "red"
+
+        # Add annotation with strategy performance
+        annotation_text = (
+            f"<b>Strategy Performance</b><br>"
+            f"Total Return: <span style='color:{pnl_color}'>{total_return:+.2f}%</span><br>"
+            f"Sharpe Ratio: {sharpe_ratio:.2f}<br>"
+            f"Win Rate: {win_rate:.2f}%<br>"
+            f"Total Trades: {int(total_trades)}"
+        )
+
+        fig.add_annotation(
+            text=annotation_text,
+            xref="paper",
+            yref="paper",
+            x=0.02,
+            y=0.98,
+            xanchor="left",
+            yanchor="top",
+            showarrow=False,
+            bgcolor="rgba(255, 255, 255, 0.9)",
+            bordercolor="black",
+            borderwidth=1,
+            borderpad=10,
+            font=dict(size=11),
+        )
+
+        fig.update_layout(
+            title=f"{name} - Trading Signals",
+            xaxis_title="Date",
+            yaxis_title="Price ($)",
+            template="plotly_white",
+            height=600,
+            hovermode="closest",
+            showlegend=True,
+            legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99),
+        )
+
+        figures[name] = fig
+
+    return figures
+
+
+def plot_all(results) -> None:
     """Display all plots in sequence.
 
     Args:
-        results: Dictionary mapping strategy names to result dictionaries
+        results: BacktestResults object or dictionary mapping strategy names to result dictionaries
     """
+    results = _convert_results_to_dict(results)
     # Equity curve
     fig = plot_equity_curve(results)
     fig.show()
