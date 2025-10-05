@@ -348,16 +348,20 @@ The framework calculates 20+ metrics automatically:
 
 ### Interactive Notebooks
 
-Explore the `notebooks/` directory for comprehensive examples:
+Explore comprehensive examples in Jupyter notebooks. Click "Open in Colab" to run them directly in your browser:
 
-1. **01_basic_usage.ipynb** - Introduction, data loading, commission setup, strategy comparison
-2. **02_candle_strategies.ipynb** - Candlestick patterns (Engulfing, Hammer, Doji, etc.)
-3. **03_ta_strategies.ipynb** - Technical indicators (RSI, MACD, Bollinger Bands, etc.)
-4. **04_ml_strategies.ipynb** - Machine learning strategies (Logistic Regression, Random Forest, XGBoost)
-5. **05_commission_usage.ipynb** - Commission models comparison and custom implementations
-6. **06_advanced_optimization.ipynb** - Grid search, random search, walk-forward optimization
+| Notebook | Description | Colab Link |
+|----------|-------------|------------|
+| **01_basic_usage.ipynb** | Introduction, data loading, commission setup, strategy comparison | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/01_basic_usage.ipynb) |
+| **02_candle_strategies.ipynb** | Candlestick patterns (Engulfing, Hammer, Doji, etc.) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/02_candle_strategies.ipynb) |
+| **03_ta_strategies.ipynb** | Technical indicators (RSI, MACD, Bollinger Bands, etc.) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/03_ta_strategies.ipynb) |
+| **04_ml_strategies.ipynb** | Machine learning strategies (Logistic Regression, Random Forest, XGBoost) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/04_ml_strategies.ipynb) |
+| **05_commission_usage.ipynb** | Commission models comparison and custom implementations | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/05_commission_usage.ipynb) |
+| **06_advanced_optimization.ipynb** | Grid search, random search, walk-forward optimization | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/06_advanced_optimization.ipynb) |
 
-Run notebooks:
+**Note:** Replace `yourusername` in the Colab URLs with your GitHub username once the repository is published.
+
+Run notebooks locally:
 ```bash
 # Install with notebook dependencies
 uv sync --all-extras
