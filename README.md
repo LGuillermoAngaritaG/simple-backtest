@@ -7,8 +7,8 @@
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Test Coverage](https://img.shields.io/badge/coverage-31%25-orange.svg)](https://github.com/yourusername/simple-backtest)
-[![Tests](https://img.shields.io/badge/tests-39%20passed-success.svg)](https://github.com/yourusername/simple-backtest)
+[![Test Coverage](https://img.shields.io/badge/coverage-69%25-brightgreen.svg)](https://github.com/yourusername/simple-backtest)
+[![Tests](https://img.shields.io/badge/tests-247%20passed-success.svg)](https://github.com/yourusername/simple-backtest)
 
 [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples)
 
