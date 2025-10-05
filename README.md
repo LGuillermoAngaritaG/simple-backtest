@@ -7,8 +7,8 @@
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Test Coverage](https://img.shields.io/badge/coverage-69%25-brightgreen.svg)](https://github.com/yourusername/simple-backtest)
-[![Tests](https://img.shields.io/badge/tests-247%20passed-success.svg)](https://github.com/yourusername/simple-backtest)
+[![Test Coverage](https://img.shields.io/badge/coverage-69%25-brightgreen.svg)](https://github.com/LGuillermoAngaritaG/simple-backtest)
+[![Tests](https://img.shields.io/badge/tests-247%20passed-success.svg)](https://github.com/LGuillermoAngaritaG/simple-backtest)
 
 [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples)
 
@@ -77,6 +77,22 @@ Works with any asset providing OHLC(V) price data:
 | 📉 **Futures** | ⚠️ Partial | No margin/leverage modeling |
 | 📊 **Options** | ❌ No | Requires Greeks, strikes, expiration |
 
+## 📓 Examples
+
+### Interactive Notebooks
+
+Explore comprehensive examples in Jupyter notebooks. Click "Open in Colab" to run them directly in your browser:
+
+| Notebook | Description | Colab Link |
+|----------|-------------|------------|
+| **01_basic_usage.ipynb** | Introduction, data loading, commission setup, strategy comparison | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/LGuillermoAngaritaG/simple-backtest/blob/main/notebooks/01_basic_usage.ipynb) |
+| **02_candle_strategies.ipynb** | Candlestick patterns (Engulfing, Hammer, Doji, etc.) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/LGuillermoAngaritaG/simple-backtest/blob/main/notebooks/02_candle_strategies.ipynb) |
+| **03_ta_strategies.ipynb** | Technical indicators (RSI, MACD, Bollinger Bands, etc.) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/LGuillermoAngaritaG/simple-backtest/blob/main/notebooks/03_ta_strategies.ipynb) |
+| **04_ml_strategies.ipynb** | Machine learning strategies (Logistic Regression, Random Forest, XGBoost) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/LGuillermoAngaritaG/simple-backtest/blob/main/notebooks/04_ml_strategies.ipynb) |
+| **05_commission_usage.ipynb** | Commission models comparison and custom implementations | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/LGuillermoAngaritaG/simple-backtest/blob/main/notebooks/05_commission_usage.ipynb) |
+| **06_advanced_optimization.ipynb** | Grid search, random search, walk-forward optimization | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/LGuillermoAngaritaG/simple-backtest/blob/main/notebooks/06_advanced_optimization.ipynb) |
+
+
 ## 📦 Installation
 
 ```bash
@@ -87,7 +103,7 @@ pip install simple-backtest
 uv add simple-backtest
 
 # From source
-git clone https://github.com/yourusername/simple-backtest.git
+git clone https://github.com/LGuillermoAngaritaG/simple-backtest.git
 cd simple-backtest
 uv sync --all-extras
 ```
@@ -344,109 +360,6 @@ The framework calculates 20+ metrics automatically:
 - Information Ratio
 - Correlation with benchmark
 
-## 📓 Examples
-
-### Interactive Notebooks
-
-Explore comprehensive examples in Jupyter notebooks. Click "Open in Colab" to run them directly in your browser:
-
-| Notebook | Description | Colab Link |
-|----------|-------------|------------|
-| **01_basic_usage.ipynb** | Introduction, data loading, commission setup, strategy comparison | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/01_basic_usage.ipynb) |
-| **02_candle_strategies.ipynb** | Candlestick patterns (Engulfing, Hammer, Doji, etc.) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/02_candle_strategies.ipynb) |
-| **03_ta_strategies.ipynb** | Technical indicators (RSI, MACD, Bollinger Bands, etc.) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/03_ta_strategies.ipynb) |
-| **04_ml_strategies.ipynb** | Machine learning strategies (Logistic Regression, Random Forest, XGBoost) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/04_ml_strategies.ipynb) |
-| **05_commission_usage.ipynb** | Commission models comparison and custom implementations | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/05_commission_usage.ipynb) |
-| **06_advanced_optimization.ipynb** | Grid search, random search, walk-forward optimization | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yourusername/simple-backtest/blob/main/notebooks/06_advanced_optimization.ipynb) |
-
-**Note:** Replace `yourusername` in the Colab URLs with your GitHub username once the repository is published.
-
-Run notebooks locally:
-```bash
-# Install with notebook dependencies
-uv sync --all-extras
-
-# Start Jupyter
-jupyter notebook
-```
-
-### Example Strategies
-
-**RSI Mean Reversion:**
-```python
-class RSIStrategy(Strategy):
-    def __init__(self, period=14, oversold=30, overbought=70, shares=10):
-        super().__init__(name=f"RSI_{period}")
-        self.period = period
-        self.oversold = oversold
-        self.overbought = overbought
-        self.shares = shares
-
-    def predict(self, data, trade_history):
-        if len(data) < self.period:
-            return self.hold()
-
-        # Calculate RSI
-        delta = data['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=self.period).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=self.period).mean()
-        rs = gain / loss
-        rsi = 100 - (100 / (1 + rs))
-
-        current_rsi = rsi.iloc[-1]
-
-        if current_rsi < self.oversold and not self.has_position():
-            return self.buy(self.shares)
-        elif current_rsi > self.overbought and self.has_position():
-            return self.sell_all()
-        else:
-            return self.hold()
-```
-
-**Dollar Cost Averaging (Built-in):**
-```python
-from simple_backtest import DCAStrategy
-
-strategy = DCAStrategy(
-    investment_amount=500,  # Invest $500 each time
-    interval_days=30,       # Every 30 days
-    name="DCA_Monthly"
-)
-```
-
-## 🏗️ Architecture
-
-```
-simple_backtest/
-├── core/              # Main backtesting logic
-│   ├── backtest.py       # Backtest engine
-│   ├── portfolio.py      # Portfolio management
-│   └── results.py        # Results containers
-├── strategy/          # Strategy implementations
-│   ├── base.py           # Abstract Strategy class
-│   ├── moving_average.py # MA crossover strategy
-│   ├── buy_and_hold.py   # Buy & hold strategy
-│   └── dca.py            # Dollar cost averaging
-├── commission/        # Commission models
-│   ├── base.py           # Abstract Commission class
-│   ├── percentage.py     # Percentage commission
-│   ├── flat.py           # Flat-rate commission
-│   └── tiered.py         # Tiered commission
-├── optimization/      # Parameter optimization
-│   ├── base.py           # Abstract Optimizer class
-│   ├── grid_search.py    # Grid search
-│   ├── random_search.py  # Random search
-│   └── walk_forward.py   # Walk-forward optimization
-├── metrics/           # Performance metrics
-│   ├── calculator.py     # Metrics calculation
-│   └── definitions.py    # Individual metrics
-├── visualization/     # Plotting
-│   └── plotter.py        # Plotly charts
-└── utils/             # Utilities
-    ├── logger.py         # Logging configuration
-    ├── validation.py     # Input validation
-    └── execution.py      # Execution price extraction
-```
 
 ## 🛠️ Development
 
@@ -454,7 +367,7 @@ simple_backtest/
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/simple-backtest.git
+git clone https://github.com/LGuillermoAngaritaG/simple-backtest.git
 cd simple-backtest
 
 # Install with uv (recommended)
@@ -537,6 +450,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📬 Contact & Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/simple-backtest/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/simple-backtest/discussions)
+- **Issues**: [GitHub Issues](https://github.com/LGuillermoAngaritaG/simple-backtest/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/LGuillermoAngaritaG/simple-backtest/discussions)
 - **Email**: guille2005_13@hotmail.com
