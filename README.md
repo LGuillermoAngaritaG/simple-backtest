@@ -20,7 +20,7 @@
 
 Simple Backtest is a Python framework designed to make backtesting trading strategies straightforward and accessible. Whether you're testing a simple moving average crossover or a complex machine learning model, Simple Backtest provides the tools you need.
 
-**Key Philosophy**: Inherit from `Strategy`, implement `predict()`, and let the framework handle the rest.
+**Key Philosophy**: Bring your own data from any library/api/csv/etc, we dont provide any data source, just the framework to test your strategies. Inherit from `Strategy`, `Commission` and `Optimizer`, and create your own strategies. We have some built-in classes and examples to get you started but the main goal is to be able to use the framework with your own data and strategy, and let simple-backtest handle the rest.
 
 ## ✨ Features
 
